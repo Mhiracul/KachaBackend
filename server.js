@@ -111,6 +111,28 @@ app.get("/api/cars", async (req, res) => {
   }
 });
 
+app.put("/api/cars/:id", async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!status || !["Available", "Sold Out"].includes(status)) {
+    return res.status(400).json({ message: "Invalid status." });
+  }
+
+  try {
+    const car = await Car.findById(id);
+    if (!car) {
+      return res.status(404).json({ message: "Car not found." });
+    }
+
+    car.status = status;
+    await car.save();
+    res.status(200).json({ message: "Car status updated successfully.", car });
+  } catch (error) {
+    console.error("Error updating car status:", error);
+    res.status(500).json({ message: "Failed to update car status." });
+  }
+});
 // Admin creation endpoint (secured)
 app.post("/api/admin/create", auth, async (req, res) => {
   const { username, password } = req.body;
