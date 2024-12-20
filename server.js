@@ -36,6 +36,22 @@ const Car = mongoose.model(
   })
 );
 
+const carRentSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  price: { type: Number, required: true },
+  people: { type: Number, required: true }, // Number of people
+  driveType: { type: String, required: true }, // Driver or Self Drive
+  imgSrc: { type: String, required: true }, // Base64 image
+  status: {
+    type: String,
+    enum: ["Available", "Sold Out"],
+    default: "Available",
+  },
+  details: { type: String, required: true },
+});
+
+const CarRent = mongoose.model("CarRent", carRentSchema);
+
 const Admin = mongoose.model(
   "Admin",
   new mongoose.Schema({
@@ -88,6 +104,41 @@ const auth = (req, res, next) => {
   }
 };
 
+app.post("/api/rentals", auth, async (req, res) => {
+  const { name, price, people, driveType, imgSrc, details, status } = req.body;
+
+  try {
+    const newCarRent = new CarRent({
+      name,
+      price,
+      people,
+      driveType,
+      imgSrc,
+      details,
+      status,
+    });
+
+    await newCarRent.save();
+    res
+      .status(201)
+      .json({
+        message: "Car for rent added successfully!",
+        carRent: newCarRent,
+      });
+  } catch (err) {
+    res.status(500).json({ msg: "Error saving car rental", error: err });
+  }
+});
+
+// Get all car rentals (public endpoint)
+app.get("/api/rentals", async (req, res) => {
+  try {
+    const carRents = await CarRent.find();
+    res.json(carRents);
+  } catch (err) {
+    res.status(500).json({ msg: "Error fetching car rentals" });
+  }
+});
 // Add car endpoint (only accessible by admin)
 app.post("/api/cars", auth, async (req, res) => {
   const { name, type, price, details, imgSrc, status } = req.body;
