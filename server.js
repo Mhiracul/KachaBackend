@@ -42,12 +42,6 @@ const carRentSchema = new mongoose.Schema({
   people: { type: Number, required: true }, // Number of people
   driveType: { type: String, required: true }, // Driver or Self Drive
   imgSrc: { type: String, required: true }, // Base64 image
-  status: {
-    type: String,
-    enum: ["Available", "Sold Out"],
-    default: "Available",
-  },
-  details: { type: String, required: true },
 });
 
 const CarRent = mongoose.model("CarRent", carRentSchema);
@@ -114,17 +108,13 @@ app.post("/api/rentals", auth, async (req, res) => {
       people,
       driveType,
       imgSrc,
-      details,
-      status,
     });
 
     await newCarRent.save();
-    res
-      .status(201)
-      .json({
-        message: "Car for rent added successfully!",
-        carRent: newCarRent,
-      });
+    res.status(201).json({
+      message: "Car for rent added successfully!",
+      carRent: newCarRent,
+    });
   } catch (err) {
     res.status(500).json({ msg: "Error saving car rental", error: err });
   }
