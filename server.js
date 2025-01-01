@@ -26,8 +26,19 @@ const Car = mongoose.model(
     name: { type: String, required: true },
     type: { type: String, required: true },
     price: { type: Number, required: true },
+    seat: { type: Number, required: true },
+    Bags: { type: Number, required: true },
     details: { type: String, required: true },
-    imgSrc: { type: String, required: true },
+    imgSrc: { type: String, required: true }, // Main image
+    additionalImages: {
+      type: [String], // Array of strings for image URLs
+      validate: {
+        validator: function (value) {
+          return value.length <= 3; // Allow up to 3 additional images
+        },
+        message: "You can add up to 3 additional images.",
+      },
+    },
     status: {
       type: String,
       enum: ["Available", "Sold Out"],
@@ -45,6 +56,62 @@ const carRentSchema = new mongoose.Schema({
 });
 
 const CarRent = mongoose.model("CarRent", carRentSchema);
+
+const bookingSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+    },
+    phone: {
+      type: String,
+      required: true,
+    },
+    carDetails: {
+      type: Object, // You can define a more specific schema for carDetails if necessary
+      required: true,
+    },
+    quantity: {
+      type: Number,
+      required: true,
+    },
+    totalPrice: {
+      type: Number,
+      required: true,
+    },
+    pickupLocation: {
+      type: String,
+      required: true,
+    },
+    destination: {
+      type: String,
+      required: true,
+    },
+    rentalDate: {
+      type: Date,
+      required: true,
+    },
+    rentalDuration: {
+      type: Number, // in hours
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "confirmed", "completed", "canceled"], // Possible status values
+      default: "pending",
+    },
+    paymentProof: {
+      type: String, // This should be a string
+      required: true, // Adjust if this is required
+    },
+  },
+  {
+    timestamps: true, // Adds createdAt and updatedAt fields automatically
+  }
+);
+
+// Create the Booking model
+const Booking = mongoose.model("Booking", bookingSchema);
 
 const Admin = mongoose.model(
   "Admin",
@@ -129,15 +196,74 @@ app.get("/api/rentals", async (req, res) => {
     res.status(500).json({ msg: "Error fetching car rentals" });
   }
 });
-// Add car endpoint (only accessible by admin)
-app.post("/api/cars", auth, async (req, res) => {
-  const { name, type, price, details, imgSrc, status } = req.body;
+
+app.post("/api/rentals/price", async (req, res) => {
+  const { carId, hours, mopol } = req.body;
 
   try {
-    const newCar = new Car({ name, type, price, details, imgSrc, status });
+    const car = await CarRent.findById(carId);
+    if (!car) return res.status(404).json({ msg: "Car not found" });
+
+    let totalPrice = (car.price * hours) / 12; // Adjust price based on hours (base price is per 12 hours)
+
+    if (mopol === "With Mopol") {
+      totalPrice += 35000; // Add 35k if Mopol is selected
+    }
+
+    // Return car details along with the calculated total price
+    res.json({
+      totalPrice,
+      carDetails: {
+        name: car.name,
+        imgSrc: car.imgSrc,
+        people: car.people,
+        driveType: car.driveType,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ msg: "Error calculating price" });
+  }
+});
+// Add car endpoint (only accessible by admin)
+app.post("/api/cars", auth, async (req, res) => {
+  const {
+    name,
+    type,
+    price,
+    seat,
+    Bags,
+    details,
+    imgSrc,
+    additionalImages,
+    status,
+  } = req.body;
+
+  // Validate required fields
+  if (!name || !type || !price || !seat || !Bags || !details || !imgSrc) {
+    return res.status(400).json({ msg: "All fields are required." });
+  }
+
+  if (additionalImages && !Array.isArray(additionalImages)) {
+    return res.status(400).json({ msg: "Additional images must be an array." });
+  }
+
+  try {
+    const newCar = new Car({
+      name,
+      type,
+      price,
+      seat,
+      Bags,
+      details,
+      imgSrc,
+      additionalImages: additionalImages || [], // Default to an empty array if not provided
+      status,
+    });
+
     await newCar.save();
     res.json(newCar);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ msg: "Error saving car" });
   }
 });
@@ -193,6 +319,66 @@ app.post("/api/admin/create", auth, async (req, res) => {
     } else {
       res.status(500).json({ msg: "Error creating admin" });
     }
+  }
+});
+
+app.post("/api/bookings", async (req, res) => {
+  try {
+    const {
+      name,
+      phone,
+      carDetails,
+      quantity,
+      totalPrice,
+      pickupLocation,
+      destination,
+      rentalDate,
+      rentalDuration,
+      status,
+      paymentProof,
+    } = req.body;
+
+    const newBooking = new Booking({
+      name,
+      phone,
+      carDetails,
+      quantity,
+      totalPrice,
+      pickupLocation,
+      destination,
+      rentalDate,
+      rentalDuration,
+      status: status || "pending", // Default to 'pending' if not provided
+      paymentProof, // Store the Base64 string for payment proof
+    });
+
+    await newBooking.save();
+
+    res.status(201).json({
+      message: "Booking created successfully",
+      booking: newBooking,
+    });
+  } catch (error) {
+    console.error("Error creating booking:", error);
+    res.status(500).json({
+      message: "An error occurred while creating the booking",
+      error: error.message,
+    });
+  }
+});
+
+// Route to get all bookings (for demonstration)
+app.get("/api/bookings", async (req, res) => {
+  try {
+    const bookings = await Booking.find();
+    console.log("Bookings fetched:", bookings); // Add this line to log the bookings
+    res.status(200).json(bookings);
+  } catch (error) {
+    console.error("Error fetching bookings:", error);
+    res.status(500).json({
+      message: "An error occurred while fetching the bookings",
+      error: error.message,
+    });
   }
 });
 
