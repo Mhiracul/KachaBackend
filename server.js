@@ -299,6 +299,44 @@ app.put("/api/cars/:id", async (req, res) => {
     res.status(500).json({ message: "Failed to update car status." });
   }
 });
+
+app.put("/api/carss/:id", async (req, res) => {
+  try {
+    const { name, price, details } = req.body; // Get the updated car data from the request body
+
+    // Find the car by ID and update the details
+    const car = await Car.findByIdAndUpdate(
+      req.params.id, // Car ID passed as parameter
+      { name, price, details }, // New values for the fields
+      { new: true } // Return the updated document
+    );
+
+    if (!car) {
+      return res.status(404).json({ message: "Car not found" });
+    }
+
+    return res.status(200).json(car); // Return the updated car
+  } catch (error) {
+    console.error("Error updating car:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// DELETE: Delete a car
+app.delete("/api/cars/:id", async (req, res) => {
+  try {
+    const car = await Car.findByIdAndDelete(req.params.id); // Delete car by ID
+
+    if (!car) {
+      return res.status(404).json({ message: "Car not found" });
+    }
+
+    return res.status(200).json({ message: "Car deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting car:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
 // Admin creation endpoint (secured)
 app.post("/api/admin/create", auth, async (req, res) => {
   const { username, password } = req.body;
