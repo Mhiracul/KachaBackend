@@ -31,10 +31,10 @@ const Car = mongoose.model(
     details: { type: String, required: true },
     imgSrc: { type: String, required: true }, // Main image
     additionalImages: {
-      type: [String], // Array of strings for image URLs
+      type: [String], // Array of image strings
       validate: {
         validator: function (value) {
-          return value.length <= 3; // Allow up to 3 additional images
+          return value.length <= 3; // Limit to 3 additional images
         },
         message: "You can add up to 3 additional images.",
       },
@@ -238,7 +238,6 @@ app.post("/api/cars", auth, async (req, res) => {
     status,
   } = req.body;
 
-  // Validate required fields
   if (!name || !type || !price || !seat || !Bags || !details || !imgSrc) {
     return res.status(400).json({ msg: "All fields are required." });
   }
@@ -256,7 +255,7 @@ app.post("/api/cars", auth, async (req, res) => {
       Bags,
       details,
       imgSrc,
-      additionalImages: additionalImages || [], // Default to an empty array if not provided
+      additionalImages: additionalImages || [],
       status,
     });
 
