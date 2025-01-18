@@ -277,7 +277,7 @@ app.get("/api/cars", async (req, res) => {
   }
 });
 
-app.put("/api/cars/:id", async (req, res) => {
+app.patch("/api/cars/:id", async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
