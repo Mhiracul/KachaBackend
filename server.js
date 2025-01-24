@@ -241,6 +241,44 @@ app.post("/api/rentals/price", async (req, res) => {
     res.status(500).json({ msg: "Error calculating price" });
   }
 });
+
+app.put("/api/rentals/:id", async (req, res) => {
+  try {
+    const { name, price, twentyFourHoursPrice } = req.body; // Get the updated car data from the request body
+
+    // Find the car by ID and update the details
+    const car = await CarRent.findByIdAndUpdate(
+      req.params.id, // Car ID passed as parameter
+      { name, price, twentyFourHoursPrice }, // New values for the fields
+      { new: true } // Return the updated document
+    );
+
+    if (!car) {
+      return res.status(404).json({ message: "Car not found" });
+    }
+
+    return res.status(200).json(car); // Return the updated car
+  } catch (error) {
+    console.error("Error updating car:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// DELETE: Delete a car
+app.delete("/api/rentals/:id", async (req, res) => {
+  try {
+    const car = await CarRent.findByIdAndDelete(req.params.id); // Delete car by ID
+
+    if (!car) {
+      return res.status(404).json({ message: "Car not found" });
+    }
+
+    return res.status(200).json({ message: "Car deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting car:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
 // Add car endpoint (only accessible by admin)
 app.post("/api/cars", auth, async (req, res) => {
   const {
