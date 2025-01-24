@@ -51,8 +51,18 @@ const carRentSchema = new mongoose.Schema({
   name: { type: String, required: true },
   price: { type: Number, required: true },
   people: { type: Number, required: true }, // Number of people
-  driveType: { type: String, required: true }, // Driver or Self Drive
-  imgSrc: { type: String, required: true }, // Base64 image
+  driveType: { type: String, required: true },
+  twentyFourHoursPrice: { type: Number, required: true },
+  imgSrc: {
+    type: [String], // Array of image strings
+    validate: {
+      validator: function (value) {
+        return value.length <= 4; // Limit to 3 additional images
+      },
+      message: "You can add up to 3 additional images.",
+    },
+    required: true,
+  },
 });
 
 const CarRent = mongoose.model("CarRent", carRentSchema);
@@ -83,11 +93,15 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    destination: {
+    dropoffLocation: {
       type: String,
       required: true,
     },
-    rentalDate: {
+    startDate: {
+      type: Date,
+      required: true,
+    },
+    endDate: {
       type: Date,
       required: true,
     },
@@ -166,7 +180,8 @@ const auth = (req, res, next) => {
 };
 
 app.post("/api/rentals", auth, async (req, res) => {
-  const { name, price, people, driveType, imgSrc, details, status } = req.body;
+  const { name, price, people, driveType, twentyFourHoursPrice, imgSrc } =
+    req.body;
 
   try {
     const newCarRent = new CarRent({
@@ -174,6 +189,7 @@ app.post("/api/rentals", auth, async (req, res) => {
       price,
       people,
       driveType,
+      twentyFourHoursPrice,
       imgSrc,
     });
 
@@ -183,6 +199,7 @@ app.post("/api/rentals", auth, async (req, res) => {
       carRent: newCarRent,
     });
   } catch (err) {
+    console.error(err); // Log error to get more details
     res.status(500).json({ msg: "Error saving car rental", error: err });
   }
 });
