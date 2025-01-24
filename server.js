@@ -7,6 +7,11 @@ const bodyParser = require("body-parser");
 
 // Initialize app
 const app = express();
+app.use(
+  cors({
+    origin: "http://localhost:5173", // Your frontend origin
+  })
+);
 app.use(cors());
 app.use(bodyParser.json({ limit: "50mb" })); // Increase the JSON limit
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
